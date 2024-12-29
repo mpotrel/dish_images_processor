@@ -1,4 +1,4 @@
-# TODO: Make this a yaml file so it can be changed
+# TODO: Make this a yaml file so it can be changed without deployments
 TOPICS = {
     "background_removal": {
         "input": "background-removal-input",

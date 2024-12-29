@@ -3,8 +3,8 @@ import asyncio
 from fastapi import FastAPI
 
 from dish_images_processor.config.settings import get_app_settings
+from dish_images_processor.dependencies import get_producers
 from dish_images_processor.kafka.consumer import MessageConsumer
-from dish_images_processor.kafka.producer import MessageProducer
 from dish_images_processor.kafka.topics import TOPICS
 from dish_images_processor.routers.v0 import v0_router
 from dish_images_processor.services.base_service import ImageProcessingService
@@ -23,14 +23,7 @@ limiters = {
     for service_name in services.keys()
 }
 
-producers = {
-    service_name: MessageProducer(
-        service_name=service_name,
-        input_topic=topics["input"],
-        output_topic=topics["output"]
-    )
-    for service_name, topics in TOPICS.items()
-}
+producers = get_producers()
 consumers = {
     service_name: MessageConsumer(
         topic=TOPICS[service_name]["input"],
