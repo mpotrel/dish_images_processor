@@ -3,12 +3,12 @@ from typing import Dict, Any
 
 from confluent_kafka import Producer
 
-from dish_images_processor.config.settings import get_settings
+from dish_images_processor.config.settings import get_app_settings
 
 
 class ImageProcessor:
     def __init__(self):
-        self.settings = get_settings()
+        self.settings = get_app_settings()
         self.producer = Producer(
             {
                 "bootstrap.servers": self.settings.KAFKA_BOOTSTRAP_SERVERS,

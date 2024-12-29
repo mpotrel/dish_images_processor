@@ -3,7 +3,7 @@ from typing import Callable
 
 from confluent_kafka import Consumer, KafkaError
 
-from dish_images_processor.config.settings import get_settings
+from dish_images_processor.config.settings import get_app_settings
 from dish_images_processor.utils.concurrency import ConcurrencyLimiter
 
 
@@ -15,7 +15,7 @@ class ImageProcessorConsumer:
         group_id: str,
         limiter: ConcurrencyLimiter,
     ):
-        self.settings = get_settings()
+        self.settings = get_app_settings()
         self.topic = topic
         self.process_message = process_message
         self.limiter = limiter

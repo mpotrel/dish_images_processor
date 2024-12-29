@@ -1,0 +1,11 @@
+background_removal:
+  endpoint: fal-ai/rmbg-v2
+  arguments: {}
+background_generation:
+  endpoint: fal-ai/iclight-v2
+  arguments:
+    prompt: Dish and plate on a marble surface
+hyper_resolution:
+  endpoint: fal-ai/ccsr
+  arguments:
+    scale: 2
