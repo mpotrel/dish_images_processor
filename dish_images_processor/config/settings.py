@@ -1,5 +1,6 @@
 from functools import lru_cache
 import pathlib
+from typing import Optional
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
@@ -8,6 +9,11 @@ import yaml
 
 
 class AppSettings(BaseSettings):
+    # HACK: This is just so Pyright doesn't flag false errors
+    FAL_KEY: Optional[str] = None
+    KAFKA_BOOTSTRAP_SERVERS: Optional[str] = None
+    MAX_CONCURRENT_REQUESTS: Optional[str] = None
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     services_config_path = pathlib.Path().cwd() / "dish_images_processor" / "config" / "services.yml"
     services_config = yaml.safe_load(str(services_config_path))
