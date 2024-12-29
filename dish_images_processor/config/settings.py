@@ -15,8 +15,9 @@ class AppSettings(BaseSettings):
     MAX_CONCURRENT_REQUESTS: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
-    services_config_path = pathlib.Path().cwd() / "dish_images_processor" / "config" / "services.yml"
-    services_config = yaml.safe_load(str(services_config_path))
+    services_config: dict = Field(
+        default_factory=lambda: yaml.safe_load((pathlib.Path().cwd() / "dish_images_processor" / "config" / "services.yml").read_text())
+    )
 
 class ServiceSettings(BaseModel):
     app: AppSettings = Field(default_factory = lambda: AppSettings())
