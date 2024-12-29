@@ -12,6 +12,7 @@ python-dotenv = "^1.0.1"
 fastapi = {extras = ["standard"], version = "^0.115.6"}
 confluent-kafka = "^2.7.0"
 pydantic = "^2.10.4"
+pydantic-settings = "^2.7.0"
 
 
 [build-system]
