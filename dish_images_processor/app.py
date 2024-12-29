@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from dish_images_processor.config.settings import get_app_settings
 from dish_images_processor.dependencies import get_producers
 from dish_images_processor.kafka.consumer import MessageConsumer
-from dish_images_processor.kafka.topics import TOPICS
+from dish_images_processor.kafka.topics import TOPICS, TopicManager
 from dish_images_processor.routers.v0 import v0_router
 from dish_images_processor.services.base_service import ImageProcessingService
 from dish_images_processor.utils.concurrency import ConcurrencyLimiter
@@ -39,6 +39,8 @@ app.include_router(v0_router)
 @app.on_event("startup")
 async def startup_event():
     """Start Kafka consumers on application startup"""
+    topic_manager = TopicManager()
+    topic_manager.ensure_topics_exist()
     for service_name, consumer in consumers.items():
         asyncio.create_task(consumer.start())
         print(f"Started consumer for {service_name}")
