@@ -7,7 +7,7 @@ from dish_images_processor.config.settings import get_app_settings
 from dish_images_processor.utils.concurrency import ConcurrencyLimiter
 
 
-class ImageProcessorConsumer:
+class MessageConsumer:
     def __init__(
         self,
         topic: str,

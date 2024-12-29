@@ -24,7 +24,12 @@ def get_app_settings() -> AppSettings:
 @lru_cache
 def get_services_settings() -> dict:
     services_settings_path = pathlib.Path().cwd() / "dish_images_processor" / "config" / "services.yml"
-    return yaml.safe_load(str(services_settings_path))
+    try:
+        return yaml.safe_load(services_settings_path.read_text())
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Services configuration file not found at {services_settings_path}")
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML in services configuration: {e}")
 
 def get_settings(service_name: str) -> ServiceSettings:
     service_settings = get_services_settings().get(service_name)
