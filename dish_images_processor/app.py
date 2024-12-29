@@ -1,9 +1,7 @@
 from fastapi import FastAPI
 
-from dish_images_processor.routers.dev import dev_router
-from dish_images_processor.routers.prod import prod_router
+from dish_images_processor.routers.v0 import v0_router
 
 
 app = FastAPI()
-app.include_router(prod_router)
-app.include_router(dev_router)
+app.include_router(v0_router)
