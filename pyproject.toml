@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "dish-images-processor"
+version = "0.1.0"
+description = ""
+authors = ["ManuPotrel <71026308+ManuPotrel@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "dish_images_processor"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-dotenv = "^1.0.1"
+fastapi = {extras = ["standard"], version = "^0.115.6"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
