@@ -2,6 +2,7 @@ import asyncio
 
 from fastapi import FastAPI
 
+from dish_images_processor.config.logging import configure_logging, get_logger
 from dish_images_processor.config.settings import get_app_settings
 from dish_images_processor.dependencies import get_producers
 from dish_images_processor.kafka.consumer import MessageConsumer
@@ -10,21 +11,27 @@ from dish_images_processor.routers.v0 import v0_router
 from dish_images_processor.services.base_service import ImageProcessingService
 from dish_images_processor.utils.concurrency import ConcurrencyLimiter
 
+configure_logging()
+logger = get_logger(__name__)
 
 app = FastAPI(title="Dish Images Processor")
 
 settings = get_app_settings()
-services = {
+
+# Exclude completed images service from processing services
+services: dict[str, ImageProcessingService] = {
     service_name: ImageProcessingService(service_name)
-    for service_name in TOPICS.keys()
+    for service_name in TOPICS.keys() if "completed" not in service_name
 }
-limiters = {
+
+limiters: dict[str, ConcurrencyLimiter] = {
     service_name: ConcurrencyLimiter(settings.MAX_CONCURRENT_REQUESTS)
     for service_name in services.keys()
 }
 
 producers = get_producers()
-consumers = {
+
+consumers: dict[str, MessageConsumer] = {
     service_name: MessageConsumer(
         topic=TOPICS[service_name]["input"],
         process_message=service.process,
@@ -38,36 +45,26 @@ app.include_router(v0_router)
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize Kafka topics and start consumers on application startup"""
     try:
-        # Ensure Kafka topics exist
         topic_manager = TopicManager()
-        try:
-            await asyncio.get_event_loop().run_in_executor(None, topic_manager.ensure_topics_exist)
-        except Exception as e:
-            print(f"Warning: Failed to create topics: {e}")
-            pass
+        await asyncio.get_event_loop().run_in_executor(None, topic_manager.ensure_topics_exist)
+        logger.info("Successfully created Kafka topics")
 
-        # Start Kafka consumers
         for service_name, consumer in consumers.items():
-            try:
-                asyncio.create_task(consumer.start())
-                print(f"Started consumer for {service_name}")
-            except Exception as e:
-                print(f"Warning: Failed to start consumer {service_name}: {e}")
-                continue
+            asyncio.create_task(consumer.start())
+            logger.info(f"Started consumer for {service_name}")
 
-        print("Application startup completed")
+        logger.info("Application startup completed")
     except Exception as e:
-        print(f"Warning: Startup procedure encountered errors: {e}")
-        pass
+        logger.error(f"Startup procedure failed: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Cleanup resources on application shutdown"""
     for service_name, consumer in consumers.items():
         consumer.stop()
-        print(f"Stopped consumer for {service_name}")
+        logger.info(f"Stopped consumer for {service_name}")
+
     for producer in producers.values():
         producer.close()
-    print("Closed Kafka producer")
+
+    logger.info("Kafka producers closed")

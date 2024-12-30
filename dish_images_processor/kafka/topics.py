@@ -1,9 +1,11 @@
 from confluent_kafka.admin import AdminClient, NewTopic
 
+from dish_images_processor.config.logging import get_logger
 from dish_images_processor.config.settings import get_app_settings
 
+logger = get_logger(__name__)
 
-# TODO: Make this a yaml file so it can be changed without deployments
+# TODO: Make this a yaml file to be able to change this without deployment
 TOPICS = {
     "background_removal": {
         "input": "background-removal-input",
@@ -15,10 +17,12 @@ TOPICS = {
     },
     "hyper_resolution": {
         "input": "hyper-resolution-input",
-        "output": "completed-images"
+        "output": "hyper-resolution-input"
+    },
+    "completed_images": {
+        "input": "completed-images"
     }
 }
-
 
 class TopicManager:
     def __init__(self):
@@ -35,30 +39,28 @@ class TopicManager:
         topics = set()
         for service_config in TOPICS.values():
             topics.add(service_config["input"])
-            topics.add(service_config["output"])
+            if "output" in service_config:
+                topics.add(service_config["output"])
         return list(topics)
 
     def create_topics(self, topics: list[str], num_partitions: int = 1, replication_factor: int = 1):
         existing_topics = self.get_existing_topics()
-        new_topics = []
-
-        for topic in topics:
-            if topic not in existing_topics:
-                new_topics.append(NewTopic(
-                    topic,
-                    num_partitions=num_partitions,
-                    replication_factor=replication_factor
-                ))
+        new_topics = [
+            NewTopic(
+                topic,
+                num_partitions=num_partitions,
+                replication_factor=replication_factor
+            ) for topic in topics if topic not in existing_topics
+        ]
 
         if new_topics:
             futures = self.admin_client.create_topics(new_topics)
-
             for topic, future in futures.items():
                 try:
                     future.result()
-                    print(f"Topic {topic} created successfully")
+                    logger.info(f"Topic {topic} created successfully")
                 except Exception as e:
-                    print(f"Failed to create topic {topic}: {e}")
+                    logger.error(f"Failed to create topic {topic}: {e}")
 
     def ensure_topics_exist(self):
         required_topics = self.get_required_topics()
