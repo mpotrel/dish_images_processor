@@ -27,25 +27,26 @@ async def test_concurrency_limiter_concurrent_access(mock_limiter):
 
 @pytest.mark.asyncio
 async def test_concurrency_limiter_max_concurrent(mock_limiter):
-    completion_order = []
+    active_operations = 0
+    max_active = 0
 
     async def test_operation(id: int):
+        nonlocal active_operations, max_active
         async with await mock_limiter.limit():
+            active_operations += 1
+            max_active = max(max_active, active_operations)
             await asyncio.sleep(0.1)
-            completion_order.append(id)
+            active_operations -= 1
             return True
 
-    # Start 3 operations (limiter max is 2)
     results = await asyncio.gather(
         test_operation(1),
         test_operation(2),
         test_operation(3)
     )
 
+    assert max_active <= 2  # Verify concurrency limit
     assert all(results)
-    assert len(completion_order) == 3
-    # First two operations should complete before the third
-    assert 3 not in completion_order[:2]
 
 @pytest.mark.asyncio
 async def test_concurrency_limiter_error_handling(mock_limiter):

@@ -2,22 +2,31 @@ from functools import lru_cache
 import pathlib
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 from pydantic_settings.main import SettingsConfigDict
 import yaml
 
 
 class AppSettings(BaseSettings):
-    # HACK: This is just so Pyright doesn't flag false errors
-    FAL_KEY: Optional[str] = None
-    KAFKA_BOOTSTRAP_SERVERS: Optional[str] = None
-    MAX_CONCURRENT_REQUESTS: Optional[int] = None
+    FAL_KEY: str = Field(..., description="FAL API key")
+    KAFKA_BOOTSTRAP_SERVERS: str = Field(..., description="Kafka bootstrap servers")
+    MAX_CONCURRENT_REQUESTS: int = Field(..., gt=0, description="Maximum number of concurrent requests")
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
-    services_config: dict = Field(
-        default_factory=lambda: yaml.safe_load((pathlib.Path().cwd() / "dish_images_processor" / "config" / "services.yml").read_text())
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        validate_default=True
     )
+
+    @field_validator('FAL_KEY', 'KAFKA_BOOTSTRAP_SERVERS', 'MAX_CONCURRENT_REQUESTS')
+    @classmethod
+    def validate_not_empty(cls, v: str | int) -> str | int:
+        if isinstance(v, str) and not v.strip():
+            raise ValueError("Field cannot be empty")
+        if isinstance(v, int) and v <= 0:
+            raise ValueError("MAX_CONCURRENT_REQUESTS must be greater than 0")
+        return v
 
 class ServiceSettings(BaseModel):
     app: AppSettings = Field(default_factory = lambda: AppSettings())

@@ -1,5 +1,3 @@
-import os
-import time
 from typing import Optional
 
 import fal_client
@@ -28,31 +26,32 @@ class ImageProcessingService:
                 if k in ['job_id', 'image_url', 'created_at']
             })
 
-            if os.getenv("DEBUG_MODE") == "true":
-                processed_url = f"processed_{base_message.image_url}"
+            # if os.getenv("DEBUG_MODE") == "true":
+            #     processed_url = f"processed_{base_message.image_url}"
 
-                output_message = OutputImageMessage(
-                    job_id=base_message.job_id,
-                    image_url=base_message.image_url,
-                    created_at=base_message.created_at,
-                    processed_url=processed_url
-                )
-            else:
-                arguments = self.settings.arguments.copy()
-                arguments["image_url"] = base_message.image_url
-                handler = fal_client.submit(
-                    self.settings.endpoint,
-                    arguments=arguments
-                )
-                result = handler.get()
-                return OutputImageMessage(
-                    job_id=base_message.job_id,
-                    image_url=base_message.image_url,
-                    created_at=base_message.created_at,
-                    processed_url=result["image_url"]
-                )
+            #     output_message = OutputImageMessage(
+            #         job_id=base_message.job_id,
+            #         image_url=base_message.image_url,
+            #         created_at=base_message.created_at,
+            #         processed_url=processed_url
+            #     )
+            # else:
+            #     arguments = self.settings.arguments.copy()
+            #     arguments["image_url"] = base_message.image_url
+            #     handler = fal_client.submit(
+            #         self.settings.endpoint,
+            #         arguments=arguments
+            #     )
+            #     result = handler.get()
+            #     return OutputImageMessage(
+            #         job_id=base_message.job_id,
+            #         image_url=base_message.image_url,
+            #         created_at=base_message.created_at,
+            #         processed_url=result["image_url"]
+            #     )
 
 
+            output_message = await self.request_fal(base_message)
             output_message_dict = output_message.model_dump()
             output_message_dict['processed_by'] = message_dict.get('processed_by', {})
             output_message_dict['processed_by'][self.service_name] = True
@@ -64,6 +63,21 @@ class ImageProcessingService:
         except Exception as e:
             logger.error(f"{self.service_name} failed: {e}")
             return
+
+    async def request_fal(self, base_message: InputImageMessage):
+        arguments = self.settings.arguments.copy()
+        arguments["image_url"] = base_message.image_url
+        handler = fal_client.submit(
+            self.settings.endpoint,
+            arguments=arguments
+        )
+        result = handler.get()
+        return OutputImageMessage(
+            job_id=base_message.job_id,
+            image_url=base_message.image_url,
+            created_at=base_message.created_at,
+            processed_url=result["image_url"]
+        )
 
     async def _forward_message(self, message: OutputImageMessage):
         try:

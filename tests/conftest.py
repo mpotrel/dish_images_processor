@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from dish_images_processor.app import app
 from dish_images_processor.kafka.producer import MessageProducer
+from dish_images_processor.models.messages import OutputImageMessage
 from dish_images_processor.services.base_service import ImageProcessingService
 from dish_images_processor.utils.concurrency import ConcurrencyLimiter
 
@@ -72,8 +73,19 @@ def mock_producers(mocker):
     return producers
 
 @pytest.fixture
-def mock_service():
-    return ImageProcessingService("background_removal")
+def mock_service(mocker):
+    service = ImageProcessingService("background_removal")
+    async def mock_request_fal(base_message):
+        if getattr(mock_request_fal, 'should_fail', False):
+            raise Exception("FAL API error")
+        return OutputImageMessage(
+            job_id=base_message.job_id,
+            image_url=base_message.image_url,
+            created_at=base_message.created_at,
+            processed_url=f"processed_{base_message.image_url}"
+        )
+    mocker.patch.object(service, 'request_fal', side_effect=mock_request_fal)
+    return service
 
 @pytest.fixture
 def mock_limiter():
