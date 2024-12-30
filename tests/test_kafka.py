@@ -88,3 +88,33 @@ async def test_consumer_handle_error(mocker):
     result = consumer._poll_message()
     assert result is None
     assert not process_message.called
+
+@pytest.mark.asyncio
+async def test_producer_prevents_duplicate_message_production(mock_kafka_producer, sample_image_urls):
+    # Create a list to track sent messages
+    sent_messages = []
+
+    # Mock the producer's produce method to capture messages
+    def capture_messages(topic, key, value, on_delivery):
+        # Check if this message key (job_id) has already been sent
+        existing_message = next((m for m in sent_messages if m['key'] == key), None)
+        assert existing_message is None, f"Duplicate message with key {key} attempted to be produced"
+
+        sent_messages.append({
+            'topic': topic,
+            'key': key,
+            'value': value
+        })
+
+    mock_kafka_producer.producer.produce.side_effect = capture_messages
+
+    # Simulate sending messages for each image URL
+    for url in sample_image_urls['images']:
+        test_message = InputImageMessage(
+            job_id=f"unique-job-{url.split('/')[-1]}",
+            image_url=url
+        )
+        await mock_kafka_producer.send_message(test_message)
+
+    # Verify the number of unique messages matches the number of input URLs
+    assert len(sent_messages) == len(sample_image_urls['images'])

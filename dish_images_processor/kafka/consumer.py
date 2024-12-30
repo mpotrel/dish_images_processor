@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from typing import Callable, Any
 
 from confluent_kafka import Consumer
@@ -39,30 +40,35 @@ class MessageConsumer:
     async def start(self):
         self.running = True
         loop = asyncio.get_event_loop()
-
         logger.info(f"Consumer starting to poll topic: {self.topic}")
         try:
             while self.running:
                 result = await loop.run_in_executor(None, self._poll_message)
-
                 if result is None:
                     await asyncio.sleep(0.1)
                     continue
 
                 msg, value = result
-
                 if isinstance(msg, KafkaError):
                     continue
-
-                try:
-                    await self._process_with_limiter(value)
-                    self.consumer.commit(msg)
-                except Exception as e:
-                    logger.error(f"Message processing error: {e}")
+                asyncio.create_task(self._process_message(msg, value))
+            await asyncio.Event().wait()
         except Exception as e:
             logger.error(f"Consumer error: {e}")
         finally:
             self.stop()
+
+    async def _process_message(self, msg, value):
+        logger.info(f"Finished processing for job {value.get('job_id')}")
+        try:
+            async with await self.limiter.limit():
+                if os.getenv("DEBUG_MODE") == "true":
+                    await asyncio.sleep(2)
+                await self.process_message(value)
+
+            self.consumer.commit(msg)
+        except Exception as e:
+            logger.error(f"Message processing error: {e}")
 
     def _poll_message(self) -> tuple | None:
         try:
@@ -86,9 +92,6 @@ class MessageConsumer:
             logger.error(f"Error polling from {self.topic}: {e}")
             return
 
-    async def _process_with_limiter(self, message: Any):
-        async with await self.limiter.limit():
-            await self.process_message(message)
 
     def stop(self):
         self.running = False

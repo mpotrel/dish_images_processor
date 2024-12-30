@@ -1,6 +1,3 @@
-import pytest
-from fastapi import HTTPException
-
 def test_preprocess_endpoint_success(test_client, mock_producers, sample_image_urls):
     response = test_client.post("/v0/preprocess", json=sample_image_urls)
 
