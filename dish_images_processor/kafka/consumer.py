@@ -31,15 +31,16 @@ class MessageConsumer:
         self.process_message = process_message
         self.limiter = limiter
         self.running = False
-
         # Instantiate consumer during initialization
         self.consumer = Consumer(self.consumer_config)
         self.consumer.subscribe([self.topic])
+        logger.info(f"Consumer {group_id} subscribed to topic: {topic}")
 
     async def start(self):
         self.running = True
         loop = asyncio.get_event_loop()
 
+        logger.info(f"Consumer starting to poll topic: {self.topic}")
         try:
             while self.running:
                 result = await loop.run_in_executor(None, self._poll_message)
@@ -66,21 +67,23 @@ class MessageConsumer:
     def _poll_message(self) -> tuple | None:
         try:
             msg = self.consumer.poll(1.0)
-
             if msg is None:
                 return
-
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     return
+                logger.info(f"Error polling from {self.topic}: {msg.error()}")
                 return msg, msg.error()
 
+            logger.info(f"Raw message received from {self.topic}: {msg.value()}")
             try:
                 value = json.loads(msg.value().decode("utf-8"))
                 return msg, value
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error decoding message from {self.topic}: {e}")
                 return
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error polling from {self.topic}: {e}")
             return
 
     async def _process_with_limiter(self, message: Any):

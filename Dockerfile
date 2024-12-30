@@ -4,6 +4,7 @@ RUN pip install poetry
 WORKDIR /app
 COPY pyproject.toml poetry.lock ./
 COPY dish_images_processor ./dish_images_processor
+COPY tests ./tests
 COPY .env .
 # Disable virtualenv creation for Docker
 RUN poetry config virtualenvs.create false \

@@ -16,7 +16,9 @@ class ImageProcessingService:
 
     async def process(self, message_dict: dict) -> Optional[OutputImageMessage]:
         try:
+            logger.info(f"Processing message in {self.service_name}: {message_dict}")
             if message_dict.get('processed_by', {}).get(self.service_name, False):
+                logger.info(f"Message already processed by {self.service_name}, skipping")
                 return
 
             base_message = InputImageMessage(**{
@@ -80,6 +82,7 @@ class ImageProcessingService:
 
             if completed_topic_producer:
                 await completed_topic_producer.send_message(message)
+                logger.info(f"Completed image: {message}")
             else:
                 logger.warning("No completed images producer found")
 
