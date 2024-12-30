@@ -12,7 +12,7 @@ class AppSettings(BaseSettings):
     # HACK: This is just so Pyright doesn't flag false errors
     FAL_KEY: Optional[str] = None
     KAFKA_BOOTSTRAP_SERVERS: Optional[str] = None
-    MAX_CONCURRENT_REQUESTS: Optional[str] = None
+    MAX_CONCURRENT_REQUESTS: Optional[int] = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     services_config: dict = Field(

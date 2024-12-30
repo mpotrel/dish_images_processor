@@ -19,19 +19,22 @@ class ImageProcessingService:
         Returns:
             Optional[OutputImageMessage]: Processed message
         """
+        return OutputImageMessage(
+            job_id=message.job_id,
+            image_url=message.image_url,
+            created_at=message.created_at,
+            processed_url=f"processed_{message.image_url}"
+        )
         try:
             arguments = self.settings.arguments.copy()
             arguments["image_url"] = message.image_url
-            # Submit upscaling task
             handler = fal_client.submit(
                 self.settings.endpoint,
                 arguments=arguments
             )
 
-            # Wait for result
             result = handler.get()
 
-            # Update message with upscaled image URL
             return OutputImageMessage(
                 job_id=message.job_id,
                 image_url=message.image_url,

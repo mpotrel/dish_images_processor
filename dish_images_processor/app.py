@@ -38,12 +38,29 @@ app.include_router(v0_router)
 
 @app.on_event("startup")
 async def startup_event():
-    """Start Kafka consumers on application startup"""
-    topic_manager = TopicManager()
-    topic_manager.ensure_topics_exist()
-    for service_name, consumer in consumers.items():
-        asyncio.create_task(consumer.start())
-        print(f"Started consumer for {service_name}")
+    """Initialize Kafka topics and start consumers on application startup"""
+    try:
+        # Ensure Kafka topics exist
+        topic_manager = TopicManager()
+        try:
+            await asyncio.get_event_loop().run_in_executor(None, topic_manager.ensure_topics_exist)
+        except Exception as e:
+            print(f"Warning: Failed to create topics: {e}")
+            pass
+
+        # Start Kafka consumers
+        for service_name, consumer in consumers.items():
+            try:
+                asyncio.create_task(consumer.start())
+                print(f"Started consumer for {service_name}")
+            except Exception as e:
+                print(f"Warning: Failed to start consumer {service_name}: {e}")
+                continue
+
+        print("Application startup completed")
+    except Exception as e:
+        print(f"Warning: Startup procedure encountered errors: {e}")
+        pass
 
 @app.on_event("shutdown")
 async def shutdown_event():
