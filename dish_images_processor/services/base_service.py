@@ -22,10 +22,13 @@ class ImageProcessingService:
                 logger.info(f"Message already processed by {self.service_name}, skipping")
                 return
 
-            base_message = InputImageMessage(**{
+            input_message_params = {
                 k: v for k, v in message_dict.items()
-                if k in ['job_id', 'image_url', 'created_at']
-            })
+                if k in ['job_id', 'image_url', 'created_at', 'unprocessed_image_url']
+            }
+            if "processed_image_url" in message_dict:
+                input_message_params["image_url"] = message_dict["processed_image_url"]
+            base_message = InputImageMessage(**input_message_params)
 
             output_message = await self.request_fal(base_message)
             if output_message is None:
@@ -53,11 +56,17 @@ class ImageProcessingService:
             arguments=arguments
         )
         result = handler.get()
+        # HACK: Needs to be improved if possible
+        # The main issue is the lack of standardisation from FAL
+        if "image" not in result:
+            processed_image_url = result["images"][0]["url"]
+        else:
+            processed_image_url = result["image"]["url"]
         return OutputImageMessage(
             job_id=base_message.job_id,
             image_url=base_message.image_url,
             created_at=base_message.created_at,
-            processed_image_url=result["image_url"],
+            processed_image_url=processed_image_url,
             unprocessed_image_url=base_message.unprocessed_image_url
         )
 
@@ -82,9 +91,11 @@ class ImageProcessingService:
 
             if completed_topic_producer:
                 await completed_topic_producer.send_message(message)
-                base_job_id = message.job_id.split('-')[0]
+                base_job_id = message.job_id.rsplit('-', 1)[0]
                 completed_messages = get_completed_messages()
-                completed_messages.get(base_job_id, []).append(message)
+                if base_job_id not in completed_messages:
+                    completed_messages[base_job_id] = []
+                completed_messages[base_job_id].append(message)
                 logger.info(f"Completed image: {message}")
             else:
                 logger.warning("No completed images producer found")

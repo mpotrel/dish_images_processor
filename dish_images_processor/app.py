@@ -1,5 +1,7 @@
 import asyncio
 
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI
 
 from dish_images_processor.config.logging import configure_logging, get_logger
@@ -10,6 +12,7 @@ from dish_images_processor.kafka.topics import TOPICS, TopicManager
 from dish_images_processor.routers.v0 import v0_router
 from dish_images_processor.services.base_service import ImageProcessingService
 from dish_images_processor.utils.concurrency import ConcurrencyLimiter
+
 
 configure_logging()
 logger = get_logger(__name__)
