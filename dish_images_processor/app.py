@@ -1,8 +1,9 @@
+# ruff: noqa: E402
 import asyncio
 
 from dotenv import load_dotenv
-load_dotenv()
 from fastapi import FastAPI
+load_dotenv()
 
 from dish_images_processor.config.logging import configure_logging, get_logger
 from dish_images_processor.config.settings import get_app_settings

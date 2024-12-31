@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: |
+          pip install poetry
+
+      - name: Install dependencies
+        run: |
+          poetry config virtualenvs.create false
+          poetry install
+
+      - name: Run Ruff Linting
+        run: |
+          poetry run ruff check .
+
+      - name: Run Pytest
+        env:
+          FAL_KEY: test-fal-key
+          KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+          MAX_CONCURRENT_REQUESTS: 2
+        run: |
+          echo "FAL_KEY=test-fal-key" > .env
+          echo "KAFKA_BOOTSTRAP_SERVERS=localhost:9092" >> .env
+          echo "MAX_CONCURRENT_REQUESTS=2" >> .env
+          poetry run pytest tests/ -v
