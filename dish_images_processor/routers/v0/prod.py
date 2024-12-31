@@ -3,8 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 
 from dish_images_processor.config.logging import get_logger
-from dish_images_processor.dependencies import get_producers
-from dish_images_processor.models.messages import InputImageMessage
+from dish_images_processor.dependencies import get_completed_messages, get_producers
+from dish_images_processor.models.messages import InputImageMessage, OutputImageMessage
 from dish_images_processor.models.preprocess import ImageUrls, ProcessingResponse
 
 logger = get_logger(__name__)
@@ -49,3 +49,20 @@ async def preprocess_img(
     except Exception as e:
         logger.error(f"Failed to process images for job {job_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@prod_router.get("/images/{job_id}")
+async def get_image_pairs(
+    job_id: str,
+    messages: dict[str, list[OutputImageMessage]] = Depends(get_completed_messages)
+):
+    if job_id not in messages:
+        raise HTTPException(status_code=404, detail="No processed images found for this job")
+    return {
+        "url_pairs": [
+            {
+                "unprocessed_image_url": msg.unprocessed_image_url,
+                "processed_image_url": msg.processed_image_url
+            }
+            for msg in messages[job_id]
+        ]
+    }

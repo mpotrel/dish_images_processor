@@ -1,5 +1,6 @@
 from dish_images_processor.kafka.producer import MessageProducer
 from dish_images_processor.kafka.topics import TOPICS
+from dish_images_processor.models.messages import OutputImageMessage
 
 
 producers = {
@@ -10,7 +11,11 @@ producers = {
     for service_name, topics in TOPICS.items()
 }
 
-# Ensure completed images producer is separate
+completed_messages: dict[str, list[OutputImageMessage]] = {}
+
+def get_completed_messages() -> dict[str, list[OutputImageMessage]]:
+    return completed_messages
+
 if "completed_images" in TOPICS:
     producers["completed_images"] = MessageProducer(
         service_name="completed_images",

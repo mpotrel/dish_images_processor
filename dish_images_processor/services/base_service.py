@@ -5,7 +5,7 @@ import fal_client
 from dish_images_processor.config.logging import get_logger
 from dish_images_processor.config.settings import get_settings
 from dish_images_processor.models.messages import InputImageMessage, OutputImageMessage
-from dish_images_processor.dependencies import get_producers
+from dish_images_processor.dependencies import get_completed_messages, get_producers
 
 logger = get_logger(__name__)
 
@@ -25,31 +25,6 @@ class ImageProcessingService:
                 k: v for k, v in message_dict.items()
                 if k in ['job_id', 'image_url', 'created_at']
             })
-
-            # if os.getenv("DEBUG_MODE") == "true":
-            #     processed_url = f"processed_{base_message.image_url}"
-
-            #     output_message = OutputImageMessage(
-            #         job_id=base_message.job_id,
-            #         image_url=base_message.image_url,
-            #         created_at=base_message.created_at,
-            #         processed_url=processed_url
-            #     )
-            # else:
-            #     arguments = self.settings.arguments.copy()
-            #     arguments["image_url"] = base_message.image_url
-            #     handler = fal_client.submit(
-            #         self.settings.endpoint,
-            #         arguments=arguments
-            #     )
-            #     result = handler.get()
-            #     return OutputImageMessage(
-            #         job_id=base_message.job_id,
-            #         image_url=base_message.image_url,
-            #         created_at=base_message.created_at,
-            #         processed_url=result["image_url"]
-            #     )
-
 
             output_message = await self.request_fal(base_message)
             output_message_dict = output_message.model_dump()
@@ -76,7 +51,8 @@ class ImageProcessingService:
             job_id=base_message.job_id,
             image_url=base_message.image_url,
             created_at=base_message.created_at,
-            processed_url=result["image_url"]
+            processed_image_url=result["image_url"],
+            unprocessed_image_url=base_message.unprocessed_image_url
         )
 
     async def _forward_message(self, message: OutputImageMessage):
@@ -100,6 +76,9 @@ class ImageProcessingService:
 
             if completed_topic_producer:
                 await completed_topic_producer.send_message(message)
+                base_job_id = message.job_id.split('-')[0]
+                completed_messages = get_completed_messages()
+                completed_messages.get(base_job_id, []).append(message)
                 logger.info(f"Completed image: {message}")
             else:
                 logger.warning("No completed images producer found")

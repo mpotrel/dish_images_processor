@@ -82,7 +82,7 @@ def mock_service(mocker):
             job_id=base_message.job_id,
             image_url=base_message.image_url,
             created_at=base_message.created_at,
-            processed_url=f"processed_{base_message.image_url}"
+            processed_image_url=f"processed_{base_message.image_url}"
         )
     mocker.patch.object(service, 'request_fal', side_effect=mock_request_fal)
     return service

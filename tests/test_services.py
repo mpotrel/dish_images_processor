@@ -7,7 +7,7 @@ async def test_service_process_new_message(mock_service, mock_producers, sample_
     assert result is not None
     assert result.job_id == sample_message["job_id"]
     assert result.image_url == sample_message["image_url"]
-    assert result.processed_url == f"processed_{sample_message['image_url']}"
+    assert result.processed_image_url == f"processed_{sample_message['image_url']}"
 
     mock_producers['background_generation'].send_message.assert_called_once()
 
