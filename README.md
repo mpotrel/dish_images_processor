@@ -1,7 +1,20 @@
-# Setup
+# Dish Image Processor
 
-Ensure you have `docker` and `python3` installed on your system.
-Clone the repo and create a `.env` file containing your settings in the following format:
+A scalable image processing pipeline using fal.ai APIs and Kafka for message streaming.
+
+## Prerequisites
+- Docker and Docker Compose
+- Python 3.11+
+
+## Quick Start
+
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd dish-images-processor
+```
+
+Create a `.env` file containing your settings in the following format:
 
 ```
 FAL_KEY = <YOUR_API_KEY>
@@ -27,12 +40,40 @@ curl -X 'POST' \
   ]}'
 ```
 
+# Monitoring and Verification
+## Checking Service Status
+
+View logs: `docker compose logs -f app`
+Monitor Kafka topics: `docker exec -it kafka kafka-topics --bootstrap-server localhost:9092 --list`
+View messages in a topic: `docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic <topic-name> --from-beginning`
+
+## Verifying Concurrency Limits
+
+Submit a large batch of images (10+)
+Monitor logs to see concurrent processing:
+
+```bash
+docker compose logs -f app | grep "Remaining slots"
+```
+
+# Development Mode
+To run without making actual fal.ai API calls:
+
+Enter the container:
+
+```bash
+docker exec -it dish-images-processor-app-1
+```
+
+Stop the existing process and start in debug mode:
+
+```bash
+kill $(pgrep -f uvicorn)
+DEBUG_MODE=true poetry run uvicorn dish_images_processor.app:app --host 0.0.0.0 --port 8000
+```
+
 # Running unit tests
 You can run unit tests with `docker exec -it <app-container> poetry run pytest tests/ -v`
-
-# Dev mode
-Dev mode is an app mode to run integration tests without actually sending requests to fal.ai.
-You may want to run some tests, to ensure that the concurrency limits per service work as expected for instance. If that is the case, enter the container with `docker exec -it <app-container> bash` (you can find the app container with `docker ps`), `kill` the existing uvicorn process and run `DEBUG_MODE=true poetry run uvicorn dish_images_processor.app:app --host 0.0.0.0 --port 8000` to run the app in dev mode.
 
 # Contributing (project structure)
 The `dish_images_processor` package is structured as follows:

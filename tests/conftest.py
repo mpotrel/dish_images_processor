@@ -90,3 +90,24 @@ def mock_service(mocker):
 @pytest.fixture
 def mock_limiter():
     return ConcurrencyLimiter(2)
+
+@pytest.fixture
+def mock_image_response():
+    """Mock response for image URLs"""
+    return {
+        'content-type': 'image/jpeg',
+        'content-length': '12345'
+    }
+
+@pytest.fixture
+def mock_aiohttp_session(mocker, mock_image_response):
+    """Mock aiohttp ClientSession with image headers"""
+    mock_response = mocker.AsyncMock()
+    mock_response.status = 200
+    mock_response.headers = mock_image_response
+
+    mock_session = mocker.AsyncMock()
+    mock_session.head = mocker.AsyncMock(return_value=mock_response)
+    mock_session.get = mocker.AsyncMock(return_value=mock_response)
+
+    return mock_session

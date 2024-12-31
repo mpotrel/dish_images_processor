@@ -6,6 +6,7 @@ from dish_images_processor.config.logging import get_logger
 from dish_images_processor.config.settings import get_settings
 from dish_images_processor.models.messages import InputImageMessage, OutputImageMessage
 from dish_images_processor.dependencies import get_completed_messages, get_producers
+from dish_images_processor.utils.image_validation import is_valid_image
 
 logger = get_logger(__name__)
 
@@ -27,6 +28,8 @@ class ImageProcessingService:
             })
 
             output_message = await self.request_fal(base_message)
+            if output_message is None:
+                return
             output_message_dict = output_message.model_dump()
             output_message_dict['processed_by'] = message_dict.get('processed_by', {})
             output_message_dict['processed_by'][self.service_name] = True
@@ -40,6 +43,9 @@ class ImageProcessingService:
             return
 
     async def request_fal(self, base_message: InputImageMessage):
+        if not await is_valid_image(base_message.image_url):
+            logger.error(f"Invalid image at URL: {base_message.image_url}")
+            return
         arguments = self.settings.arguments.copy()
         arguments["image_url"] = base_message.image_url
         handler = fal_client.submit(
